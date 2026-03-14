@@ -2000,5 +2000,188 @@ particle.style.left = `${posX}%`;
         window.addEventListener('scroll', animateOnScroll);
         window.addEventListener('load', animateOnScroll);
     </script>
+
+    <!-- Custom Cursor -->
+    <div id="cursor-outer"></div>
+    <div id="cursor-inner"></div>
+    <div id="cursor-trail-container"></div>
+
+    <style>
+        * { cursor: none !important; }
+
+        #cursor-inner {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #ff2244;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99999;
+            transform: translate(-50%, -50%);
+            transition: width 0.15s ease, height 0.15s ease, background 0.2s ease;
+            box-shadow: 0 0 10px #ff2244, 0 0 20px rgba(255,34,68,0.5);
+        }
+
+        #cursor-outer {
+            position: fixed;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99998;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s ease, height 0.2s ease, border-color 0.2s ease;
+            border: 1.5px solid rgba(255, 34, 68, 0.6);
+            box-shadow: 0 0 12px rgba(255,34,68,0.2), inset 0 0 8px rgba(255,34,68,0.05);
+            background: rgba(192, 0, 26, 0.04);
+            backdrop-filter: blur(2px);
+        }
+
+        /* Hover state — expand outer, shrink inner */
+        body.cursor-hover #cursor-outer {
+            width: 52px;
+            height: 52px;
+            border-color: rgba(255, 100, 130, 0.8);
+            background: rgba(192, 0, 26, 0.08);
+            box-shadow: 0 0 20px rgba(255,34,68,0.3), inset 0 0 12px rgba(255,34,68,0.08);
+        }
+        body.cursor-hover #cursor-inner {
+            width: 6px;
+            height: 6px;
+            background: #ff6680;
+            box-shadow: 0 0 14px #ff6680, 0 0 28px rgba(255,102,128,0.6);
+        }
+
+        /* Click state */
+        body.cursor-click #cursor-outer {
+            width: 28px;
+            height: 28px;
+            border-color: #ff2244;
+            background: rgba(192, 0, 26, 0.18);
+        }
+        body.cursor-click #cursor-inner {
+            width: 14px;
+            height: 14px;
+            background: #ff2244;
+        }
+
+        /* Trail dots */
+        .cursor-trail {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99990;
+            transform: translate(-50%, -50%);
+            animation: trailFade 0.6s ease forwards;
+        }
+
+        @keyframes trailFade {
+            0%   { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0;   transform: translate(-50%, -50%) scale(0.1); }
+        }
+    </style>
+
+    <script>
+        const cursorInner = document.getElementById('cursor-inner');
+        const cursorOuter = document.getElementById('cursor-outer');
+        const trailContainer = document.getElementById('cursor-trail-container');
+
+        let mouseX = 0, mouseY = 0;
+        let outerX = 0, outerY = 0;
+        let trailIndex = 0;
+
+        // Move inner cursor instantly
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursorInner.style.left = mouseX + 'px';
+            cursorInner.style.top  = mouseY + 'px';
+            spawnTrail(mouseX, mouseY);
+        });
+
+        // Smooth outer cursor follows with lag
+        function animateOuter() {
+            outerX += (mouseX - outerX) * 0.12;
+            outerY += (mouseY - outerY) * 0.12;
+            cursorOuter.style.left = outerX + 'px';
+            cursorOuter.style.top  = outerY + 'px';
+            requestAnimationFrame(animateOuter);
+        }
+        animateOuter();
+
+        // Hover effect on interactive elements
+        const hoverEls = 'a, button, [onclick], .feature-card, .testimonial-card, .float-btn, input, textarea, .theme-toggle';
+        document.querySelectorAll(hoverEls).forEach(el => {
+            el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
+            el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+        });
+
+        // Click burst effect
+        document.addEventListener('mousedown', () => {
+            document.body.classList.add('cursor-click');
+            burstEffect(mouseX, mouseY);
+        });
+        document.addEventListener('mouseup', () => document.body.classList.remove('cursor-click'));
+
+        // Trail sparkles
+        let lastTrailTime = 0;
+        function spawnTrail(x, y) {
+            const now = Date.now();
+            if (now - lastTrailTime < 40) return; // throttle
+            lastTrailTime = now;
+
+            const dot = document.createElement('div');
+            dot.className = 'cursor-trail';
+            const size = Math.random() * 5 + 3;
+            const hue = Math.random() > 0.5 ? '#ff2244' : '#9aaecf';
+            dot.style.cssText = `
+                left: ${x}px; top: ${y}px;
+                width: ${size}px; height: ${size}px;
+                background: ${hue};
+                box-shadow: 0 0 ${size * 2}px ${hue};
+            `;
+            trailContainer.appendChild(dot);
+            setTimeout(() => dot.remove(), 600);
+        }
+
+        // Click burst — multiple particles fly outward
+        function burstEffect(x, y) {
+            const count = 10;
+            for (let i = 0; i < count; i++) {
+                const burst = document.createElement('div');
+                burst.style.cssText = `
+                    position: fixed;
+                    left: ${x}px; top: ${y}px;
+                    width: 5px; height: 5px;
+                    border-radius: 50%;
+                    background: #ff2244;
+                    box-shadow: 0 0 8px #ff2244;
+                    pointer-events: none;
+                    z-index: 99995;
+                    transform: translate(-50%, -50%);
+                `;
+                document.body.appendChild(burst);
+                const angle = (i / count) * Math.PI * 2;
+                const dist = Math.random() * 40 + 20;
+                const tx = Math.cos(angle) * dist;
+                const ty = Math.sin(angle) * dist;
+                burst.animate([
+                    { transform: `translate(-50%, -50%) translate(0,0)`, opacity: 1 },
+                    { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`, opacity: 0 }
+                ], { duration: 500, easing: 'ease-out', fill: 'forwards' });
+                setTimeout(() => burst.remove(), 500);
+            }
+        }
+
+        // Hide cursor when leaving window
+        document.addEventListener('mouseleave', () => {
+            cursorInner.style.opacity = '0';
+            cursorOuter.style.opacity = '0';
+        });
+        document.addEventListener('mouseenter', () => {
+            cursorInner.style.opacity = '1';
+            cursorOuter.style.opacity = '1';
+        });
+    </script>
 </body>
 </html>
